@@ -1,0 +1,67 @@
+compile w/ -Wall
+
+inner engine of optimized interpreter could use 8-bit lookup to process instruction streams for 8 active pinkies?
+sounds messy.  if high bit is changing state machine, then you have to update 128 entries of the lookup table.
+maybe 8 lookups, each stating next lookup table?  sounds more doable.
+
+there don't appear to be any arm clusters on the market, which could force a big demo jump from demonstrating an
+emulator on a high number of cores on a desktop to an fpga version.  would be nice if i could find an arm cluster,
+but wikipedia claims they don't exist.
+
+found an interesting <$10 arm system-on-a-chip here: http://www.linuxdevices.com/news/NS9531254633.html
+can run linux and has a variety of interconnects.
+
+if i make this simulator both small and fast, can more easily demonstrate 
+
+adopted more sensible naming scheme and calling/return convention for functions.
+
+parse in order for simplicity.
+
+skip all this nonsense and just make a super dumb assembler for testing.  instead, make makec and the code generator for it?  could, but
+it would probably be a pain to debug.  bad idea.  plus, start small.
+
+next goal: move some memory verifiably.
+
+got through a lot more of the console / simulator.  still need to implement memory so that i can do pinky_mov() and pinky_arm() properly.
+
+console now executes and recognizes commands.  however, setting rom to a wait
+instruction hangs the simulator after you reset the pinky.
+
+have broken the bottom of console_run() and need to clean the pinkies up into farms.  hard to say how to make adjacent farms talk to each other.  can't really assume topologies.  leaning towards a simple linear partition of pinky local memories w/in a farm.
+
+need to develop a philosophy of sending code with data to get it closer to its intended transducers.  going to think of pinkies not as separate from memory, but as processors embedded within memory.  i know i need to have bandwidth to nearest neighbors, so hierarchy is out for farms.
+
+i need a general way for pinkies and pinky farms to find their io ports and
+find themselves an address space.
+
+first application should be an unzip, because when a runtime is done, you could use this engine to implement a fairly tight, huffman-encoded instruction set.  and it kind of represents the workload of decoding an instruction stream.  also isn't easy to parallelize.
+
+steve chamberlain asked if it might be good for neural net simulation.  should investigate benchmarks and interesting demos for this.  also mentioned h.264 decompression as a fairly standard industry benchmark for embedded systems.
+
+am thinking i should adapt the cross-assembler i started writing so that it feeds the simulator.
+
+scrapped parse_asm, starting asm, top of file is valid, code in comments isn't.
+
+major revelation.  move instruction can be shortened two ways.  one is that len should never be longer than all of the pinky's memory.  another is that should be able to assume that either the source or destination register is only as many bits as there are of local memory.
+
+for 64kbit pinkies, that means 16 bits max for the len and local addrs.
+
+the arm instruction can be completely restricted to just local memory to shorten the instruction.
+
+a possibly even simpler route would be to keep the set_n, for all operands to as many bits of memory as the pinky has, and then to do memory reads and writes out of io ports.  probably easier to just assign some of the mem space to io functions.
+
+perhaps each pinky should just have some ad/da pins that can report their ability to provide power (in mW), switch to input or output, specify an xfer rate, get the # of bits of resoluion of voltages.
+
+starting to realize i should perhaps defer how to pick my instruction decoding for when i have enough code that i can evaluate what the common instructions are.  because they're serial processors, i should be able to huffman encode the opcodes so that, for example, 0 is the super common instuction, the others start with 10 (maybe arm?), 110 (maybe wait?), 111, etc.
+
+it would be good to revisit the optimal operand width problem later, but in the interest of fwd progress, for now, i will leave it with the original (and probably suboptimal) set_n approach, but will modify the asm syntax to allow for auto-generation of set_n's to make code more writable.
+
+on the ad/da pins issue, i probably need to design a specific io address space that allows communication to both other pinkies and to devices.
+
+ugh, ad/da would be so nice, but it makes design harder than i can handle.  will start assuming pure digital and that all pinkies operate at the same speed.
+
+Expeditions in Computing grant
+grants.gov
+fon: 08-568
+grantsgovsupport@nsf.gov
+

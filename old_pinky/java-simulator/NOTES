@@ -1,0 +1,56 @@
+================================================================================
+This is the optimization algorithm.  Please look into a more optimized version
+if you have the motivation!!
+
+Parse:
+	Pass 1) 
+		If (value for N is given manually) {
+			use it and set as final;
+		} else if (args are all constants) {
+			figure out best N and mark as final;
+		} else {
+			Using absolute maximum instruction sizes, calculate
+			values for all labels.
+		}
+	Pass 2) 
+		If (instruction makes reference to something past it) {
+			Calculate max needed for the distance.
+			if (N != max needed) {
+				Recalculate remaining symbols with the reduced N (this
+					should be done totally within the symbol table).
+				Make a note that a change has been made.
+				goto pass2;
+			}
+		}
+	Pass 3)
+		Write code to disk. WOOHOO!!!
+
+================================================================================
+This yields the following label data for each pass. If these arent the right 
+values (I dont think they are), then just look to see how it operates.  The
+values were calculated using incorrect methods (I think), so dont pay too much
+attention to them.  *'s denote primary changes:
+
+Symbol:
+main      0    0    0    0    0    0    0    0
+label1  134   28*  28   26*  26   26   24   24
+label3  342  236   74*  72   69*  69   67   67
+label4  406  300  138  136  133  133  131* 131
+label5  540  434  272  270  267  159  157  157
+end     737  631  469  467  464  356  354  354
+label6  882  776  614  612  609  501  499  437*
+
+Bytes:  111   97   77   77   77   63   63   49
+
+================================================================================
+Where it's at:
+	- Add data constant keywords and memory allocation. ie:
+		data "This is a string for my program"
+		data 0xdeadbeef
+		data 0b10010101 ;maybe?  0b for binary and 0x for hex?
+		                ;  is there a standard here?
+	- Add bounds checking, to make sure they dont obviously
+	  try to modify bits outside of their code segment.
+	- Can the optimization algorithm screw up when math is applied to
+	  the labels?
+

@@ -1,0 +1,18 @@
+Okay folks, here it is...  A half completed assembler. :)  The only
+reason why I am releasing it in its current state is because I am
+pretty busy right now and wont have much time to play with it.  I
+figure that it would probably be useful to someone somewhere, so
+here it is.. enjoy..
+
+The web page is http://www.ecst.csuchico.edu/~mcumings/pinky/
+
+My Name:  Mike Cumings
+My Email: mcumings@ecst.csuchico.edu
+
+I'll be a bit more formal in a rewrite of this file later on, but
+for now just type 'make', then 'java PinkyAssembler myasm.asm'.
+This will create the binary 'myasm.asm.bin'.  I know, I know..
+The name is annoying as can be, but like I said I am just trying
+to dump this on the public right now, not sell it. :)
+
+				Mike

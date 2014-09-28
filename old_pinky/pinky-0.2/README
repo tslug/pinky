@@ -1,0 +1,29 @@
+This is a simple Pinky emulator and assembler.
+This code was developed on Linux/x86. Other platforms are untested.
+The simulator is very basic. It does not support any system services.
+Please use a debugger to watch a Pinky program run.
+
+The simulator is called "pinky" and is by James Robertson.
+Build it with gcc -o pinky pinky.c.
+Run it with ./pinky [num cpus] [num megs mem] [mem image file]
+
+The assembler is called "bleh" and is by Ronnie Misra.
+Build it with gcc -o bleh bleh.c.
+Run it by piping your source file to bleh:
+./bleh < [asm source file] > [output file]
+"bleh" also can take one argument: -f tells it to output in human-readable
+format. The assembly mnemonics are simple, look at sample.asm for an example.
+
+Look at the source for more details on either program.
+
+deficiencies:
+-Although the simulator is probably endian-clean (not tested),
+it uses a byte addressed array for its memory, and so it is
+not very efficient on various RISC platforms.
+-The simulator is not very optimized. The trigger algorithm
+could probably be sped up by using a linked list or something.
+- The assembler does not support address labels.
+
+This simulator (barely) works for me. YMMV.
+James Robertson jsrobert@mit.edu
+Ronnie Misra rgmisra@mit.edu

@@ -1,0 +1,135 @@
+Pinky Processor Architecture
+----------------------------
+
+The pinky processor has these features and behaviors:
+
+- no interrupt support
+- bitwise packing between instructions
+- bitwise addressability
+- no visible registers
+- 4 instructions
+- no performance penalty for self-modifying code (which is required)
+- connectivity to a dispatch system that assigns the pinky tasks when idle
+
+The instruction set is not meant to be human-friendly.  The goal
+is to be compact, to use very few transistors, and for each pinky
+to be responsible for executing one completely serial piece of code.
+
+A single pinky processor is called a pinky.  A group of pinkies is
+called a pinky farm or just a farm.
+
+All pinkies in a farm are attached to a dispatcher system.  The
+dispatcher is responsible for assigning work to idle pinkies.  The
+dispatcher can also reset a pinky.
+
+Pinkies access I/O ports just like any other kind of memory.  There
+is no memory protection on pinkies.  Pinkies are meant to execute
+only a runtime that the operating system and applications sit on
+top of.  The runtime is presumed to be stable, optimized, and to
+implement memory protection for processes, if desired.
+
+Instruction Set
+---------------
+
+There are four instructions in the Pinky instruction set:
+
+Format:   move DestinationAddress, SourceAddress, Length
+Type:     variable-length instruction
+Encoding: 00 <N DestinationAddress Bits> <N SourceAddress Bits> <N Length Bits>
+
+Description: Moves Length bits of memory from SourceAddress to DestinationAddress.
+
+---
+
+Format:   setN N
+Type:     fixed-length instruction
+Encoding: 01 NNNNNNNN
+
+Description: Sets the length of the bit fields to N for the move and arm instructions.
+
+---
+
+Format:   arm TriggerAddress, ExecutionAddress
+Type:     variable-length instruction
+Encoding: 10 <N WAddressriteAddress Bits> <N ExecutionAddress Bits>
+
+Description: Sends a packet to the dispatcher stating that when the WAddressriteAddress is written to by any pinky, assign the next available pinky to execute the code at the ExecutionAddress.
+
+---
+
+Format:   wait
+Type:     fixed-length instruction
+Encoding: 11
+
+Description: Sends a packet to the dispatcher telling it this pinky is now available to execute code.
+
+
+Registers
+---------
+
+There are 6 256-bit registers in a Pinky:
+
+TriggerAddress
+ExecutionAddress
+DestinationAddress
+SourceAddress
+Length
+ProgramCounter
+
+And one 8-bit register called N.
+
+These are all initialized to zero on reset.
+
+The ProgramCounter is the location of the currently executing instruction.
+The N register specifies how many of the lower-order bits to set in any
+move or arm instruction.
+
+The other registers control the behavior of the move and arm instructions
+as described in the Instruction Set section.
+
+Example Code
+------------
+
+For instance, if this is the initial state of the pinky:
+
+DestinationAddress = 0xf7f5
+SourceAddress = 0x778534
+Length = 0x286
+TriggerAddress = 0x64332
+ExecutionAddress = 0x3576877
+
+	setN	8
+	move	0x28, 0x56, 0x15
+	arm	0x99, 0x23
+	wait
+
+Then the registers after this executes will be set to:
+
+DestinationAddress = 0xf728
+SourceAddress = 0x778556
+Length = 0x215
+TriggerAddress = 0x64399
+ExecutionAddress = 0x3576823
+
+That sequence moved 0x215 bits of memory from 0x778556 to 0xf728.
+It told the dispatcher that if it sees a pinky write to the single bit at 0x64399,
+then it will assign the next available pinky to execute code at 0x3576823.
+It then puts this pinky to sleep until assigned more work from the dispatcher.
+
+Interesting Addresses
+---------------------
+
+When a pinky is reset, it automatically starts executing code from
+address 0.  This address contains the pinky's boot code.
+
+(tbd- insert all the port specs in this section to help learn about
+a pinky's local memory architecture, proximity to nearby pinkies,
+the dispatcher, and to pins)
+
+The Dispatcher
+--------------
+
+(tbd- so many ways to implement a dispatcher, coolest might be to
+figure out how to implement one with pinkies that use particular
+mem addresses to control each other)
+

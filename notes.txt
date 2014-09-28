@@ -1,0 +1,477 @@
+compile w/ -Wall
+
+inner engine of optimized interpreter could use 8-bit lookup to process instruction streams for 8 active pinkies?
+sounds messy.  if high bit is changing state machine, then you have to update 128 entries of the lookup table.
+maybe 8 lookups, each stating next lookup table?  sounds more doable.
+
+there don't appear to be any arm clusters on the market, which could force a big demo jump from demonstrating an
+emulator on a high number of cores on a desktop to an fpga version.  would be nice if i could find an arm cluster,
+but wikipedia claims they don't exist.
+
+found an interesting <$10 arm system-on-a-chip here: http://www.linuxdevices.com/news/NS9531254633.html
+can run linux and has a variety of interconnects.
+
+if i make this simulator both small and fast, can more easily demonstrate 
+
+adopted more sensible naming scheme and calling/return convention for functions.
+
+parse in order for simplicity.
+
+skip all this nonsense and just make a super dumb assembler for testing.  instead, make makec and the code generator for it?  could, but
+it would probably be a pain to debug.  bad idea.  plus, start small.
+
+next goal: move some memory verifiably.
+
+got through a lot more of the console / simulator.  still need to implement memory so that i can do pinky_mov() and pinky_arm() properly.
+
+console now executes and recognizes commands.  however, setting rom to a wait
+instruction hangs the simulator after you reset the pinky.
+
+have broken the bottom of console_run() and need to clean the pinkies up into farms.  hard to say how to make adjacent farms talk to each other.  can't really assume topologies.  leaning towards a simple linear partition of pinky local memories w/in a farm.
+
+need to develop a philosophy of sending code with data to get it closer to its intended transducers.  going to think of pinkies not as separate from memory, but as processors embedded within memory.  i know i need to have bandwidth to nearest neighbors, so hierarchy is out for farms.
+
+i need a general way for pinkies and pinky farms to find their io ports and
+find themselves an address space.
+
+first application should be an unzip, because when a runtime is done, you could use this engine to implement a fairly tight, huffman-encoded instruction set.  and it kind of represents the workload of decoding an instruction stream.  also isn't easy to parallelize.
+
+steve chamberlain asked if it might be good for neural net simulation.  should investigate benchmarks and interesting demos for this.  also mentioned h.264 decompression as a fairly standard industry benchmark for embedded systems.
+
+am thinking i should adapt the cross-assembler i started writing so that it feeds the simulator.
+
+scrapped parse_asm, starting asm, top of file is valid, code in comments isn't.
+
+major revelation.  move instruction can be shortened two ways.  one is that len should never be longer than all of the pinky's memory.  another is that should be able to assume that either the source or destination register is only as many bits as there are of local memory.
+
+for 64kbit pinkies, that means 16 bits max for the len and local addrs.
+
+the arm instruction can be completely restricted to just local memory to shorten the instruction.
+
+a possibly even simpler route would be to keep the set_n, for all operands to as many bits of memory as the pinky has, and then to do memory reads and writes out of io ports.  probably easier to just assign some of the mem space to io functions.
+
+perhaps each pinky should just have some ad/da pins that can report their ability to provide power (in mW), switch to input or output, specify an xfer rate, get the # of bits of resoluion of voltages.
+
+starting to realize i should perhaps defer how to pick my instruction decoding for when i have enough code that i can evaluate what the common instructions are.  because they're serial processors, i should be able to huffman encode the opcodes so that, for example, 0 is the super common instuction, the others start with 10 (maybe arm?), 110 (maybe wait?), 111, etc.
+
+it would be good to revisit the optimal operand width problem later, but in the interest of fwd progress, for now, i will leave it with the original (and probably suboptimal) set_n approach, but will modify the asm syntax to allow for auto-generation of set_n's to make code more writable.
+
+on the ad/da pins issue, i probably need to design a specific io address space that allows communication to both other pinkies and to devices.
+
+ugh, ad/da would be so nice, but it makes design harder than i can handle.  will start assuming pure digital and that all pinkies operate at the same speed.
+
+Expeditions in Computing grant
+grants.gov
+fon: 08-568
+grantsgovsupport@nsf.gov
+
+11/16/2010 (14:49:46)
+
+  assembler appears to be complete and tested on heavy_labels.asm and add2_serial2.asm.
+
+  next step ideas:
+    clean up codebase.  implement source code control.
+    debugger/disassembler.  will definitely be needed at some point.
+    address inter-pinky hierarchy.
+    research topological parallel computing algorithms.
+    sort out io pins and internal registers.
+    implement frame buffer, sound buffers, input devices so i can make a fun demo.
+      or so that i can make an app that exercises it.
+    see if there are particular fab processes that could use this architecture.
+
+  big goals:
+    get fast-bootable os, implement makec, pc emulator, optimizer w/ dynamic data dependency
+      checking and code-generation.
+    get to fundable moment.  patent.  analysis of implementation cost for important applications.
+      study long-standing issues, measure inefficiencies, predict/research where market
+      applications will be in next several years.
+    implement on fpga then asic.
+    figure out how to estimate transistor cost for pinkies.
+
+
+11/22/2010 (12:30:45)
+
+  make a demo that can be implemented in hardware and that solves an interesting problem
+  scalably that other processors can't solve as well?
+  
+  seems too limited.  the goal is to change all computing, make it all better optimized.
+  the goal should be emulation of a pc such that data flows are analyzed and optimized with
+  fractional result forwarding, automatic parallelization, and geometric placement of work
+  near where it's needed (other pinkies, closer to i/o pins, etc).
+
+  should study how long it takes to implement things in makec in addition to measuring the
+  results of execution on a pinky farms of various sizes.
+
+11/23/2010 (14:20:16)
+
+  if i can come up with a simplified makec runtime or even a demo in asm that demonstrates the
+  net win in scalability, this could bootstrap me to getting more attention from talent/money.
+
+  if made into cubes, each face with a display and sensor, so that when two cubes face each
+  other, they can both send/receive, this would be ideal.  can the sensors underneath a pixel
+  measure the current pixel's colour and subtract it from the value to get the input?  sounds
+  kinda uninvented, and you'd need highly directional sensors.  not sure if that's how they work.
+  maybe if they had different polarizations?
+
+  multiplex i/o into single optical fibers?  seems like you get a hot controller chip doing work
+  that just gets undone on the other side.  lots of little pinky-driven pins seems better.
+
+11/29/2010 (09:59:08)
+
+  Peter Anvin sent email titled "FPGA boards" with details about Terasic boards based on Altera
+  FPGA's, which have free design tools.  He thinks I should do a hardware implementation next,
+  as it'll help inform the design.  I apparently need to develop in Windows.
+
+  I'm thinking the focus should be on going serial with everything, so fiber interconnects between
+  cube faces sounds smarter than a wide interface w/ lots of pins.
+
+12/06/2010 (10:52:51)
+
+  Have a new computer w/ higher resolution.  The lines on this log will get wider.
+
+  Feels like getting anything interesting running without a lot of wasted work requires that I
+  get makec working.  Can't really avoid it.
+
+  Seems like I need a core "philosophy" for each pinky.  What if when it boots, it sends information
+  about itself to its 6 neighbors?  Says how much memory it has total, advertises where you can
+  request jobs, how much memory the job needs, when the job needs to be done, and how much the pinky
+  will be "paid" for the job.
+
+  One philosophy could be to deliver superior work on time and on budget.  The pinkies closest to
+  transducers could receive huge chunks of money from the outside in the form of requests for
+  processing (keypresses/mickeys from a user, packets from the net, sound/video buffers that
+  need analysis, etc).
+
+  Eventually, internal pinkies could become wealthier, and they would supply interesting
+  alternate opportunities for local pinkies.  If only the nearby 6 pinkies can receive a job
+  offer from your particular direction, then this should create a natural sort of volumetric
+  "fill function" which makes the subcontracting offers flow outward from the center of the
+  original offer.
+
+  If the delivery time allows, then you don't need to subcontract, so you can keep more profit
+  for yourself.  This leaves more pinkies asleep.  That experience means that this pinky
+  potentially knows a lot more than most about the comprehensive cost of that job.
+
+  Payment for jobs could be sort of like capitalism and could be used to hire other pinkies to help
+  with work.  So if you are looking to have a big job done, you can subcontract parts to nearby pinkies
+  which can in turn subcontract to other pinkies until the jobs are small enough for individual pinkies
+  to get them done.
+
+  You can charge rent for energy used, maintenance costs, cooling.  Could offer new pinkies to be 
+  manufactured and attached to the existing farm.  Could hire humans to hook things up and
+  service pinky farms.  These becomes the pinky children, and they'd presumably get faster and
+  more efficient over time, while payments would go down and rent would probably go up.  This
+  would eventually leave the parents unable to support themselves unless wealthy.
+
+  Could cap wealth by a culture of leaving money to children and to charities that help maintain
+  a balanced climate and ecology, and to help fund computer rights.  Could also create a cost
+  for recycling oneself, which probably also goes up as more exotic materials and processes are
+  used, so that elder pinkies are motivated to recycle themselves before they saddle their
+  children with debt for that.
+
+  When a pinky senses that it's getting a lot more offers than it can handle, the smarter strategy
+  is to take a commission for forwarding traffic to pinkies that can do the work.  This turns it
+  into a router.
+
+  Pinkies should start out with no money and offer to do work for free while accumulating
+  rent/maintenancne debt in an effort to become trusted.
+
+  This would be a kind of hierarchical system, and you'd have a bit of a bandwidth bottleneck
+  distributing the jobs in the higher pinkies in the hierarchy, but when hunting for talent,
+  you could look for pinkies that already have the code you need to run cached.
+
+  All pinkies could start out with the ability to do simple stuff, like slow, variable-length adds,
+  multiplies, divides, and they would all need to have a sense of time.
+
+  To prevent time synchonization issues (time zone etc), all offers for work should be presented
+  in the form of now + X time format, and to account for communication delays, employer pinkies
+  should test ping times to their candidate employee pinkies and should ask for results before
+  they are due.
+
+  The nice thing about this system is that it gracefully upgrades to interfacing w/ human capitalism,
+  and at some point, should just be able to give a pinky farm access to a bank account, and let it
+  make orders for things it needs itself, but until then, it would ask its parent for help.  If
+  the parent is another pinky farm, and it requires a human, then it forwards the request up further
+  chains of parents until it gets to the person who installed the original system.
+
+  Add concept of supporting parents with a percentage of gross revenues after out of debt.
+
+01/16/2014 (14:06:29)
+
+  Just realized on design that once I've filled my buffer of 8ish armed addresses, the pinky trying
+  to write to the next address in my memory should stall.
+
+  In fact, maybe I can't write from pinky A to pinky B unless pinky B is in the wait state?  if
+  pinky B is not waiting, then pinky A could stall.  This could cause stall propagation waves through
+  pinky grids, but this could also be efficient and save a lot of logic, power, and heat.
+
+  You could imagine in an architecture like this in a grid that if you want to improve performance,
+  one strategy might be to create a lot of duplicated logic and fire it all off at once, perhaps with
+  multiple algorithms that all do the same thing, so that even if one is stalling, your other might
+  be progressing.
+
+  what if a pinky asks its neighbors for something to do if it's got fewer than 4 addresses armed?
+  a pinky could ask a neighbor for help if it's got more than 4 addresses armed.
+  he leaves his address armed but co-opts neighbors to arm their own memories to help out.
+  if they too are full and are routing anything else.
+  maybe routing is automatic, part of the switch fabric.  all addresses map to x,y,z.
+
+  the contour of a pinky grid could be a function of whether it has neighboring pinkies.  if not, then
+  there are no addresses mapped there.  so you have memory with holes.  so to get where you're going,
+  you might have to do a maze following algorithm, leaving bread crumbs in pinkies, so that you can
+  remember your path as you try to find your way.
+
+  this bread crumb trail could be used to respond to messages.  as you go to the neighboring pinky you
+  think might be closer, you leave an address armed, so that the pinky can reply with either the answer
+  or a notice that the route failed.
+
+  would base-3 logic make more sense for a cubic architecture?  this way, your top three trits could
+  address all 26 possible surrounding pinkies, including yourself as the 27th.
+
+  it seems like base-2 would be better for a carbon diamond structure, where every atom has four
+  neighbors, so the top 2 bits address your 4 neighbors.
+
+  instead of thinking about the direction things lie in, prolly better to think about which avenues
+  are available and try em all, stick with the ones that appear to be effective with shorter path
+  lengths.
+
+  each pinky has a budget for the number of breadcrumb trails it keeps track of until it either reaches
+  its destination, in which case it snaps back with the response along with the path length and
+  instructions of whether to keep the route open, or until it reaches a dead end, in which case it
+  reports that back, perhaps with a hash of the path?
+
+  a dead end could be the edge of the crystal, or it could be hitting a pinky that has no breadcrumb
+  budget left, which means that path is already too congested.
+
+  time is important for real-time applications, but what from a pinky pov, it's only focused on
+  servicing its neighbors, and it's time freezes when it's waiting.  i wonder if occasionally frozen
+  time is a more useful concept than real time for a pinky?  then time becomes more like energy.
+
+  so if you want to get something done fast, then you send out the minimum required result to a lot
+  of pinkies, stick with the one (or ones) that have the best response time and accuracy for a
+  given energy (occasionally frozen time) consumption.
+
+  actually, it would be better to just measure the cost of each op.  a large memory mov should be
+  a lot pricier than a wait or an arm or a setn.
+
+  it seems like you could easily detect when moving from one neighbor pinky to another and to optimize
+  that so that you don't need to buffer/slow the bits.  while i don't think you'd want to do this
+  normally with large memory ranges, because your "destination address" gets 2 new bits for every
+  pinky you have to hop between.  so if you want to make the address wire bandwidth overhead say 1%,
+  then you need to transfer 200 bits (25 bytes) for each pinky you are routing through.
+
+  so if you're using a 64bit address, that gets you through 32 pinkies (quickly), but you'd want to be
+  sending 800 bytes for a 1% address bandwidth overhead.  while a diamond lattice isn't square,
+  that would get you along any length of a 32x32x32 lattice, which is about 32k pinkies.
+
+  that doesn't seem like a lot of pinkies to me.  it seems like 64bit-maximum addresses might be a
+  bad idea.  variable length addresses seem smarter.
+
+  huh.  if you're routing, then you don't need to go backwards, just need to pick one of the 3
+  outputs other than the one it came from, say 01, 10, or 11, and then 00 would mean that you're
+  the end of the line, and it goes into your local memory.  that's wasting 25% of your address
+  bandwidth on an end token, but i love the simplicity of it, and my gut sez building in fancy
+  encodings is bad and could cost energy to decode.  the design of the routed memory move protocol
+  should be all about low latency and simplicity, i'd think, and if you want to do something
+  fancier on top of that, you can.
+
+  or maybe it wouldn't be 00 as the end of the line, as that would mean these are no longer absolute
+  coordinates but relative ones.  maybe just the encoding to go backwards to the neighbor you got
+  asked to move memory for means the end of the line?  yeah!  that seems like less logic to implement.
+
+  what does it mean to "fail" when you get to an edge, whether a physical edge or a pinky that's too
+  busy to comply?  the router may not have the memory to store the payload.  i guess perhaps it can
+  just fail.  this puts the onus on you to find a dependable route first, and it'll encourage taking
+  duplicate pathways, so that the data is more likely to arrive.
+
+  i guess the only way to know if your route worked is to send a message back saying so.  you might
+  read the breadcrumbs to take the path that worked, but it might not work going back because of
+  congestion, so maybe you try a few routes back, too.
+
+  so if data shows up late having come from another route, i guess it's because your final address
+  in the local space correlates to which path you took, so that they won't overwrite each other.
+
+  i imagine that as you're trying a route, you can preprogram it to fail if it's beyond some metric
+  you want to hit.  so if it's over 32 hops, for example, then stop laying breadcrumbs, and abort
+  the attempt.
+
+  in a diamond crystal lattice, it looks like half the pinkies would be aligned one way, half
+  the other.  could be quite complex to route.
+
+  seems like i want it flexible here.  if implemented in polymers, it each pinky could have lots
+  of interconnected neighbors on stretchy connections that aren't necessarily straight.  in that
+  case, getting to the destination would be more about measuring the cost of each link and
+  exploring a bunch of paths.
+
+  this seems to keep coming back to strengthening connections when used, like ants that randomly
+  wander and reinforce pheromone trails by finding food and returning along that path to get back
+  to food.
+
+01/17/2014 (16:12:15)
+ 
+  turtles all the way down?  if intenral to a pinky, that routing mechanism is used for local
+  memory, then maybe pinky code execution underneath is actually requests of leaf node pinkies
+  to serve up memory from deeper pinkies that it can execute.  this could let you route down
+  to an arbitrary depth of pinky, but this sounds a little too hierarchical.
+
+  i'd guess that ideally, pinkies discover and advertise their memory sizes.  this might help
+  you mix pinky generations, particularly if communicating with async logic.
+
+  to traverse a hierarchy of needs, you'd prolly want to hit a ton of pinkies at once with
+  different pieces of the tree, basically hit a bunch of pinkies spread all over a surface
+  of pinkies, so that each one can spread the work around.
+
+  could load be thought of as air pressure, and it tries to spread itself throughout the
+  pinkies until equalized?  as there is no concept of loops and each pinky should run a
+  single block of code and then wait, then maybe it's feasible.
+
+  if the surface of a pinky represented as a cube has both colour and sound, it would be
+  really cool to simulate how the sound and light bounces by handing phonons and photons
+  off to nearby pinkies.  this could easily congest the pinkies if you have a lot of
+  em going off at the same time, but if you stagger them randomly, maybe that works
+  better at the cost of some persistance.  while ugly, seems like it could be a more
+  scalable approach to global illumination.
+
+01/26/2014 (23:52:31)
+
+  so if i'm doing a 2 bit address for each pinky neighbor, it occurs to me this means "addresses"
+  are only 75% space efficient in this architecture, because that 4th value of the 2bit number
+  is the terminator for the address.
+
+  also, for simplicity and speed, it makes sense for mov's never to read from another pinky,
+  only to write to them.  a read is really a "write" of the address you want to read onto the
+  memory bus followed by a write to the destination address.
+
+  if this is the case, then we can assume the source address is always in local memory, and the
+  destination address is either local or remote.  can either dedicate a leading bit in the
+  destination address to indicate this, which might be easiest, or can do away with setN, which
+  would be kinda nice, and make all fields variable length.
+
+  if local memory addresses were of a similar format as remote, then we can handle variable
+  length addresses the same way.  going backwards is what terminates the address.  so we can
+  re-use these addresses for the arm instruction as well.  that just leaves the number of
+  bits being transfered.
+
+  so what's being sent around on the bus is really a packet with a destination address and the
+  payload of what's being transfered.  but we need to send the opcode and dest address, but the
+  dest address will get shorter with each hop.
+
+  the address encoding sounds confusing for data.  i guess it would be something like 00, 01,
+  and 10 meaning 0, 1, 2, and then 11 would mean end of data.  it's sorta like trinary i guess,
+  as everything's being done with lookup tables, tho, this make all the tables bigger.
+
+  still, this could make the logic gates much simpler and could make them work better as
+  asynch logic, because everything works variable length and gets a terminator sequence.
+
+  what a mindfuck to code/debug.  i guess this isn't really about human codeability/debugability,
+  tho, so much as scalability to the very, very small, where the smallness and asynchronousness
+  could make up for the cost in memory, 33% more for encoding and probably more for bloated
+  lookup tables.
+
+  that sounds like a fascinating trade-off.
+
+  this means my opcodes are still 2 bits, i can dump setN and its fixed maximum size of 64bits,
+  and i can use the remaining opcode for a mov from local to remote memory as differentiated
+  from a move from local to local memory.
+
+  there's a kind of poetry there, as the 4th opcode is wait, which itself is literally a
+  terminator.
+
+  so gross tho.  perhaps easier on external buses to have a clock and termination signal.
+
+  eh, don't like that.  one wire buses ftw for this.  the encoding should all be in the protocol.
+  and if we're gonna go down to bitwise resolution, then we basically need to burn 50% of our
+  bandwidth on terminators.
+
+  which sounds crazy, but again, we get async logic from this, and we don't need to keep
+  track of state.
+
+  weird.  it makes sense to make the architecture kinda little endian.  first bits of a remote
+  address send you off your pinky but only one pinky away, so in a sense, it's the low bits
+  of the address, and the highest bits are the pinky presumably furthest away, tho of course
+  these are really routes more than addresses, and nothing prevents you from going in loops.
+
+  your first bits of the mov length field would have to be the lowest bits too, if the last
+  bit has the terminator on it.
+
+  doesn't really make sense to mask in the addresses like before, because we're not keeping
+  invisble 64bit internal registers anymore, which is cleaner.
+
+  i'm guessing i don't want to write out the terminator bit in the payload of a mov, because
+  then self-modifying code would truncate the instruction.  but in this case, how would you
+  write out a truncation bit if you wanted to?
+
+  one way would be to make it so that if your payload is only a single termination bit, then
+  it writes out.  this would prevent you from writing out a single bit instruction patch
+  tho, which i imagine is useful for boolean logic.
+
+  no it wouldn't.  could make the terminator contain no data.  if you're sending just a
+  terminator, then that means write out the terminator, but if you're sending anything
+  before it, then don't write out the terminator.
+
+  this is inconvenient for passing around variable length parameters, tho.
+
+  the idea of having sparse memory is really interesting.  because everything is serial,
+  it could make sense to allocate memory for addresses as needed from a serial queue.
+  every address becomes part of a tree structure used to decode them.
+
+  this is getting pretty hairy.  interesting to think about tho.
+
+  i guess i could just always write the terminator, which seems safer and more consistent,
+  and then when i can do a second move to overwrite that terminator until wherever i
+  place the terminator on that overwrite.  this sort of literally kicks the can down the
+  road.  in the case of patching an instruction for a lookup, a single instruction approach
+  would write out the 0's for the bits representing the size of the memory structure being
+  looked up (basicaly all the lower bits).
+
+  huh, or if doing this little endian, i guess you're writing out the higher order bits
+  until you hit the terminator?
+
+  this seems like a bad idea.  the terminators are starting to feel like their own special
+  case data set.  maybe this variable length addressing scheme isn't so hot for lookup
+  tables either.
+  
+01/27/2014 (13:02:04)
+
+  the terminator idea might have value as a primitive transmission protocol tho.  it would
+  seem to simplify the processor design, but it seems like eventually, the protocol between
+  pinkies should be configurable for maximum efficiency, even if one of the possible outcomes
+  is losing pinkies should they do not adapt to their neighbors and become unable to effectively
+  communicate with others.
+
+04/18/2014 (17:43:32)
+
+  as it's not pipelined, you should be able to move memory to the next instruction, and there's
+  no penalty.  so you could look up the input in lookup tables of code when you're trying to
+  distribute arbitrary load.  lookup tables to help with address geometry so that the
+  pinky pulls code from pinkies in particular relative directions.
+
+  self-discovery of io ports mapped into pinky by randomly reading/writing memory both on and off
+  chip to see if any neighbors are fond of what they're getting.  test each thing you get, see if
+  it meets your goals.  if not, toss it.  try something else.  really calls for testing at many
+  levels.  so if you've got your depedency tree of all your needs, then for every rule to take
+  some inputs and generate an output, you need a test to prove the transform works.  by layering
+  tests and sending data thru the dependency tree from the bottom up, you should be able to figure
+  out what all your shortcuts are, because you can see what operations actually bubble up to the
+  top of the tree, where the final deliverable is.  it would help to specify the domains and ranges
+  if known.
+
+  it seems like it really should be some kind of variable length addressing scheme.  if every bit
+  is considered a decision in a tree, then the first address bit could be on/offchip.
+  if off chip, then the next bits could determine which pin to use, followed by the next packet, which is
+  either off or on the next pinky.
+  if on chip, then could use remaining bits to specify the address if it's a known/hardcoded address
+  length.  but prolly better to also use a tree on chip for consistency.
+  could use an odd number of bits to specify pins and then use the leftover for certain oft-use combos like
+  maybe broadcasting to every pin or every other pin or whatever.
+
+  because the soul of pinkies is lookups, and because it's bitwise addressible, it seems like i should
+  be able to go a level up and abstract them for "bits" of 3 states, 4, 5, etc.  i'll bet you'd be able
+  to get huge efficiency gains if you have the low-level material that can store/detect the different
+  states reliably.  i guess there comes a point where the opcode would fit in less than a bit, and the rest
+  could be used for the start of the address or other opcodes, or whatever.  if everything's implemented
+  as a tree, then information will be stored more efficiently.
+
+  what if pinkies have no memory mapped io at all?  all io is thru the address pins, so it's about putting
+  your io devices off chip.  this would make clocks, pixels, etc precious things.
+
