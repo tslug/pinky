@@ -1,0 +1,25 @@
+This is a snapshot of the shoddily maintained Pinky Processor repo,
+cobbled together to lure Jaymin Kessler.
+
+The instruction set is described in pinky_isa1.txt
+
+The top-level simulator ran last I played with it.
+
+The idea behind the pinky is to have lots of very small, simple processors
+with bitwise-addressible memory and a little bit of visible local memory,
+no addressible registers, no cache, and 4 instructions, which are focused
+on self-modifying code and the idea that they quiesce quickly to a sleep
+state while possibly being fully implementable with async logic.
+
+They're meant to be interconnected using a serial bus to lots of other
+pinkies, as a single pinky can't get much done alone.
+
+The core operation of a pinky is the move instruction, which is meant
+to change data in another move instruction, so that when that next move
+instruction runs, it's doing a lookup operation.  The other important
+operation is arm, which waits for you to write to an armed address, and
+when you do, it executes the specified code as soon as it gets to the next
+wait instruction.  The last instruction setN is meant only to change
+the dynamic length of the instruction set and its operands, which helps
+optimize code around the working set size.
+
