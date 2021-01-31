@@ -475,3 +475,16 @@ grantsgovsupport@nsf.gov
   what if pinkies have no memory mapped io at all?  all io is thru the address pins, so it's about putting
   your io devices off chip.  this would make clocks, pixels, etc precious things.
 
+02/12/2015 (15:06:30)
+
+  did homework on vector lookup instructions in ia64.  vpgatherdd used in the 256bit mode will load eight
+    32bit numbers from eight lookups tables defined w/ eight 32bit bases and addressed/scaled w/ eight
+    32bit indexes.  can do a conditional load based on a specified mask.  requires avx2 cpuid support.
+    avx2 is only on haswell+later processors (q2 2013).  AVX-512 is the next one, will be in knight's landing,
+    like avx2 but goes to 512 bit registers and allows 8/16bit ops.  could that mean that in 8bit mode, you
+    can do up to 64 lookups with one instruction?  wow!
+  avx2 is supported in nasm, but no mention of avx512 support yet.
+  the instruction encoding and reference have gotten so hard to read!  there are a zillion prefixes and modifier
+    bitfields and contexts now.
+
+
